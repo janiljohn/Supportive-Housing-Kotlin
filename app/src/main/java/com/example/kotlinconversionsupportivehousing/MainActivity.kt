@@ -3,6 +3,8 @@ package com.example.kotlinconversionsupportivehousing
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.app.TimePickerDialog.OnTimeSetListener
 import android.bluetooth.BluetoothAdapter
@@ -22,6 +24,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.os.SystemClock
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -51,7 +54,7 @@ import java.util.Queue
 import java.util.UUID
 import java.util.concurrent.Semaphore
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), AutoConnect {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
@@ -98,7 +101,10 @@ class MainActivity : AppCompatActivity() {
     lateinit var buttonContainer: LinearLayout
     val list = listOf<String>(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN,
         Manifest.permission.BLUETOOTH_SCAN,
-        Manifest.permission.BLUETOOTH_CONNECT)
+        Manifest.permission.BLUETOOTH_CONNECT,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.USE_EXACT_ALARM)
 
         var hour = 0;
         var minute:Int = 0
@@ -342,6 +348,7 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
         open fun startProcess() {
+
             var device: BluetoothDevice? = null
             var targetDeviceAddress = ""
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
@@ -413,15 +420,24 @@ class MainActivity : AppCompatActivity() {
 
         @SuppressLint("MissingPermission")
         fun startConnection(device: BluetoothDevice) {
-            this.device = device
+            if(this.device != null){
+                this.device = device
+            }
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
             var connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
             val gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
-    //            switchLayouts("setTime")
-    //            gatt.discoverServices()
-    //            sendData()
+
             startDeviceDiscovery("sendData")
+
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun autoConnect(){
+            var newDevice =  this.device
+    //                val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+    //                val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            Log.d("AlarmReceiver", "Repeating alarm triggered from autoConnect!")
         }
 
         @SuppressLint("MissingPermission")
@@ -434,7 +450,7 @@ class MainActivity : AppCompatActivity() {
         @SuppressLint("MissingPermission")
         fun sendData(gatt: BluetoothGatt){
 
-            val s = "testing"
+            val s = "message"
             val charsetName = "UTF-16"
             val byteArray = s.toByteArray(StandardCharsets.UTF_8)
 
@@ -494,6 +510,20 @@ class MainActivity : AppCompatActivity() {
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
             setContentView(R.layout.activity_main)
+
+
+
+//            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+//            val intent = Intent(this, BluetoothReceiver::class.java)
+//            intent.action = "FOO_ACTION"
+//            intent.putExtra("KEY_FOO_STRING", "Medium AlarmManager Demo")
+//            val pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
+//                PendingIntent.FLAG_IMMUTABLE)
+//            val ALARM_DELAY_IN_SECOND = 10
+//            val alarmTimeAtUTC = System.currentTimeMillis() + ALARM_DELAY_IN_SECOND * 1_000L
+//            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarmTimeAtUTC, pendingIntent)
+
+
             initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
             scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
             textView = findViewById(R.id.statusText)
@@ -516,6 +546,31 @@ class MainActivity : AppCompatActivity() {
             }
 
             startBtn.setOnClickListener(View.OnClickListener { startProcess() })
+
+            // Alarm Manager
+            val alarmInterval = 1000
+
+            // Create an Intent for the AlarmReceiver class
+            val intent = Intent(this, BluetoothReceiver::class.java)
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE // Use FLAG_IMMUTABLE
+            )
+
+            // Get the AlarmManager service and set the repeating alarm
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+            // Set a repeating alarm starting after 5 seconds and repeat every 5 seconds
+            alarmManager.setRepeating(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + alarmInterval,
+                alarmInterval.toLong(),
+                pendingIntent
+            )
+
+
         }
 
         @SuppressLint("MissingPermission")
@@ -602,11 +657,5 @@ class MainActivity : AppCompatActivity() {
         }
 
 }
-
-
-
-
-
-
 
 
