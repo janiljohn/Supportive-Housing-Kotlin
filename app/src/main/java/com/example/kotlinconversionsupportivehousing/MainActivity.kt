@@ -38,7 +38,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.ui.AppBarConfiguration
+import androidx.viewpager2.widget.ViewPager2
 import com.example.kotlinconversionsupportivehousing.databinding.ActivityMainBinding
+import com.example.kotlinconversionsupportivehousing.fragments.WelcomeFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -53,6 +55,7 @@ import java.util.Locale
 import java.util.Queue
 import java.util.UUID
 import java.util.concurrent.Semaphore
+import com.google.android.material.tabs.TabLayout
 
 class MainActivity : AppCompatActivity(), AutoConnect {
 
@@ -63,9 +66,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     val REQUEST_ENABLE_BLUETOOTH_ADMIN = 2
 
 //    ESP-01 UUIDs
-//    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-//    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-//    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     // ESP-02 UUIDs
 //    val CHARACTERISTIC_UUID = "83755cbd-e485-4153-ac8b-ce260afd3697"
@@ -73,9 +76,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //    val DESCRIPTOR_UUID = "4d6ec567-93f0-4541-8152-81b35dc5cb8b"
 
 //    BLANK
-    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
-    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
-    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
+//    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
+//    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
+//    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
 
     val connectionSemaphore = Semaphore(1)
     private val permissionrequestcode = 123
@@ -96,6 +99,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     lateinit var timeButton: Button
     lateinit var textView: TextView
     lateinit var lastDetection: TextView
+    lateinit var displayNotification : TextView
     lateinit var context: Context
 
     lateinit var buttonContainer: LinearLayout
@@ -196,6 +200,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                         textView!!.text =
                             "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
                         lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
+                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
+
                     }
                 } catch (e: JSONException) {
                     Log.i("Error", "Could not parse JSON string")
@@ -507,11 +513,66 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             timePickerDialog.show()
         }
 
+        lateinit var tabLayout: TabLayout
+        lateinit var viewPager2: ViewPager2
+        lateinit var myViewPagerAdapter: MyViewPagerAdapter
+
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
             setContentView(R.layout.activity_main)
 
+            tabLayout = findViewById(R.id.tab_layout)
+            viewPager2 = findViewById(R.id.view_pager)
+            myViewPagerAdapter = MyViewPagerAdapter(this)
+//            myViewPagerAdapter = MyViewPagerAdapter(supportFragmentManager, lifecycle)
+            viewPager2.adapter = myViewPagerAdapter
+            context = this
 
+            tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener{
+                override fun onTabSelected(tab : TabLayout.Tab){
+                    viewPager2.currentItem = tab.position
+                    initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
+                    scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
+                    textView = findViewById(R.id.statusText)
+
+                    lastDetection = findViewById<TextView>(R.id.lastDetection)
+                    startBtn = findViewById(R.id.startBtn)
+                    //        pairedDevices = findViewById(R.id.pairedDevices);
+                    buttonContainer = findViewById<LinearLayout>(R.id.scannedDevices)
+                    scanForBluetooth.visibility = View.INVISIBLE
+                    startBtn.visibility = View.INVISIBLE
+//                    timeButton.visibility = View.INVISIBLE
+                    displayNotification = findViewById<TextView>(R.id.showNotification)
+
+                    initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
+//            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
+//            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
+                    }else {
+                        scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
+                    }
+
+                    startBtn.setOnClickListener(View.OnClickListener { startProcess() })
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab?) {
+
+                }
+
+                override fun onTabReselected(tab: TabLayout.Tab?) {
+
+                }
+            })
+
+            viewPager2.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+
+                override fun onPageSelected(position: Int) {
+                    super.onPageSelected(position)
+                    tabLayout.getTabAt(position)?.select()
+                }
+
+            })
 
 //            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 //            val intent = Intent(this, BluetoothReceiver::class.java)
@@ -523,52 +584,52 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //            val alarmTimeAtUTC = System.currentTimeMillis() + ALARM_DELAY_IN_SECOND * 1_000L
 //            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarmTimeAtUTC, pendingIntent)
 
-
-            initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
-            scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
-            textView = findViewById(R.id.statusText)
-            lastDetection = findViewById<TextView>(R.id.lastDetection)
-            startBtn = findViewById(R.id.startBtn)
-            timeButton = findViewById<Button>(R.id.setTime)
-            //        pairedDevices = findViewById(R.id.pairedDevices);
-            buttonContainer = findViewById<LinearLayout>(R.id.scannedDevices)
-            scanForBluetooth.setVisibility(View.INVISIBLE)
-            startBtn.setVisibility(View.INVISIBLE)
-            timeButton.setVisibility(View.INVISIBLE)
-            context = this
-            initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
-//            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
-//            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
-            }else {
-                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
-            }
-
-            startBtn.setOnClickListener(View.OnClickListener { startProcess() })
-
-            // Alarm Manager
-            val alarmInterval = 1000
-
-            // Create an Intent for the AlarmReceiver class
-            val intent = Intent(this, BluetoothReceiver::class.java)
-            val pendingIntent = PendingIntent.getBroadcast(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE // Use FLAG_IMMUTABLE
-            )
-
-            // Get the AlarmManager service and set the repeating alarm
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-            // Set a repeating alarm starting after 5 seconds and repeat every 5 seconds
-            alarmManager.setRepeating(
-                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + alarmInterval,
-                alarmInterval.toLong(),
-                pendingIntent
-            )
+//
+//            initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
+//            scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
+//            textView = findViewById(R.id.statusText)
+//            lastDetection = findViewById<TextView>(R.id.lastDetection)
+//            startBtn = findViewById(R.id.startBtn)
+//            timeButton = findViewById<Button>(R.id.setTime)
+//            //        pairedDevices = findViewById(R.id.pairedDevices);
+//            buttonContainer = findViewById<LinearLayout>(R.id.scannedDevices)
+//            scanForBluetooth.setVisibility(View.INVISIBLE)
+//            startBtn.setVisibility(View.INVISIBLE)
+//            timeButton.setVisibility(View.INVISIBLE)
+//            context = this
+//            initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
+////            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
+////            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
+//            }else {
+//                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
+//            }
+//
+//            startBtn.setOnClickListener(View.OnClickListener { startProcess() })
+//
+//            // Alarm Manager
+//            val alarmInterval = 1000
+//
+//            // Create an Intent for the AlarmReceiver class
+//            val intent = Intent(this, BluetoothReceiver::class.java)
+//            val pendingIntent = PendingIntent.getBroadcast(
+//                this,
+//                0,
+//                intent,
+//                PendingIntent.FLAG_IMMUTABLE // Use FLAG_IMMUTABLE
+//            )
+//
+//            // Get the AlarmManager service and set the repeating alarm
+//            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+//
+//            // Set a repeating alarm starting after 5 seconds and repeat every 5 seconds
+//            alarmManager.setRepeating(
+//                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+//                SystemClock.elapsedRealtime() + alarmInterval,
+//                alarmInterval.toLong(),
+//                pendingIntent
+//            )
 
 
         }
