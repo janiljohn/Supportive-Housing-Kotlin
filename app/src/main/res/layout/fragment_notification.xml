@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -9,10 +9,18 @@
         android:id="@+id/showNotification"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Notification Fragment"
-        android:layout_gravity="bottom|center"
-        android:layout_marginBottom="350dp"
         android:layout_centerInParent="true"
-        android:textSize="32dp"/>
+        android:layout_gravity="bottom|center"
+        android:text="Notification Fragment"
+        android:layout_marginBottom="350dp"
+        android:textSize="32dp" />
 
-</RelativeLayout>
+    <Button
+        android:id="@+id/sendData"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="500dp"
+        android:text="Send Data"/>
+
+</FrameLayout>

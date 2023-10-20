@@ -66,9 +66,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     val REQUEST_ENABLE_BLUETOOTH_ADMIN = 2
 
 //    ESP-01 UUIDs
-    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+//    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+//    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+//    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     // ESP-02 UUIDs
 //    val CHARACTERISTIC_UUID = "83755cbd-e485-4153-ac8b-ce260afd3697"
@@ -79,6 +79,11 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
 //    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
 //    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
+
+//    Pill Dispenser
+    val CHARACTERISTIC_UUID = "B3E39CF1-B4D5-4F0A-88DE-6EDE9ABE2BD2"
+    val SERVICE_UUID = "B3E39CF0-B4D5-4F0A-88DE-6EDE9ABE2BD2"
+//    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     val connectionSemaphore = Semaphore(1)
     private val permissionrequestcode = 123
@@ -101,6 +106,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     lateinit var lastDetection: TextView
     lateinit var displayNotification : TextView
     lateinit var context: Context
+    lateinit var sendDataBtn: Button
+    lateinit var setTime: Button
 
     lateinit var buttonContainer: LinearLayout
     val list = listOf<String>(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN,
@@ -143,7 +150,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     @SuppressLint("MissingPermission")
     val gattCallback: BluetoothGattCallback = object : BluetoothGattCallback() {
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                Log.i("Pill Dispenser", "onConnectionStateChange invoked")
                 Log.i("Device Status", newState.toString() + "")
+
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     Log.i("Device info", "Discovering bluetooth services of target device...")
                     runOnUiThread {
@@ -163,6 +172,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             }
 
             override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+                Log.i("Pill Dispenser", "onMtuChanged invoked")
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     Log.i("MTU Request", "MTU request success")
                     gatt.discoverServices()
@@ -175,6 +185,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 gatt: BluetoothGatt,
                 characteristic: BluetoothGattCharacteristic
             ) {
+                Log.i("Pill Dispenser", "onCharacteristicChanged invoked")
                 // Read the updated characteristic value
                 val message = characteristic.value
                 val messageString = String(message, StandardCharsets.UTF_8)
@@ -186,22 +197,22 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 val lightDetected: Boolean
                 val vibrationDetected: Boolean
                 try {
-                    val jsonObject = JSONObject(messageString)
-                    status = jsonObject.getString("status")
-                    lastDetected = jsonObject.getInt("lastDetected")
-                    motionDetected = jsonObject.getBoolean("motion")
-                    proximityDetected = jsonObject.getBoolean("proximity")
-                    lightDetected = jsonObject.getBoolean("light")
-                    vibrationDetected = jsonObject.getBoolean("vibration")
-                    //float lightIntensity = (float) jsonObject.getDouble("lightIntensity");
-                    val finalStatus = status
-                    val finalLastDetected = lastDetected
+//                    val jsonObject = JSONObject(messageString)
+//                    status = jsonObject.getString("status")
+//                    lastDetected = jsonObject.getInt("lastDetected")
+//                    motionDetected = jsonObject.getBoolean("motion")
+//                    proximityDetected = jsonObject.getBoolean("proximity")
+//                    lightDetected = jsonObject.getBoolean("light")
+//                    vibrationDetected = jsonObject.getBoolean("vibration")
+//                    //float lightIntensity = (float) jsonObject.getDouble("lightIntensity");
+//                    val finalStatus = status
+//                    val finalLastDetected = lastDetected
                     runOnUiThread {
-                        textView!!.text =
-                            "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
-                        lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
-                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
-
+//                        textView!!.text =
+//                            "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
+//                        lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
+//                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
+                        displayNotification!!.text = messageString
                     }
                 } catch (e: JSONException) {
                     Log.i("Error", "Could not parse JSON string")
@@ -212,6 +223,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                Log.i("Pill Dispenser", "onServicesDiscovered invoked")
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     val service = gatt.getService(UUID.fromString(SERVICE_UUID))
                     deviceService = service
@@ -233,11 +245,11 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                                     "Characteristic property flags",
                                     discoveredCharacteristic.properties.toString()
                                 )
-                                val desc = discoveredCharacteristic.getDescriptor(
-                                    UUID.fromString(DESCRIPTOR_UUID)
-                                )
-                                desc.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                                gatt.writeDescriptor(desc)
+//                                val desc = discoveredCharacteristic.getDescriptor(
+//                                    UUID.fromString(DESCRIPTOR_UUID)
+//                                )
+//                                desc.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+//                                gatt.writeDescriptor(desc)
                                 //gatt.requestMtu(512);
                             } else {
                                 Log.i("Set characteristic notification", "Failure!")
@@ -254,6 +266,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             }
 
         override fun onCharacteristicRead(gatt: BluetoothGatt, discoveredCharacteristic: BluetoothGattCharacteristic, status: Int) {
+
+                Log.i("Pill Dispenser", "onCharacteristicRead invoked")
+
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     val data = discoveredCharacteristic.value
                     val value = String(data, StandardCharsets.UTF_8)
@@ -261,8 +276,35 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 }
             }
 
+        override fun onCharacteristicRead(gatt: BluetoothGatt, discoveredCharacteristic: BluetoothGattCharacteristic, value : ByteArray ,status: Int) {
+
+
+            Log.i("Pill Dispenser", "onCharacteristicRead with byte array invoked")
+            val value = String(value)
+            Log.i("Read data", "Received data: $value")
+
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                val data = discoveredCharacteristic.value
+                val value = String(data, StandardCharsets.UTF_8)
+                Log.i("Read data", "Received data: $value")
+            }
+        }
+
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+                Log.i("Pill Dispenser", "onCharacteristicWrite invoked")
+                Log.i("Pill Dispenser", "onCharacteristicWrite invoked: " + characteristic.uuid)
+//                val toString = characteristic.toString()
+                val data = characteristic.value
+                val info = gatt.readCharacteristic(characteristic)
+                info.toString()
+                val value = String(data)
+                Log.i("Read data", "Received data: $value")
+
                 if (status == BluetoothGatt.GATT_SUCCESS) {
+                    val data = characteristic.value
+                    val value = String(data, StandardCharsets.UTF_8)
+                    Log.i("Read data", "Received data: $value")
+
                 }
             }
         }
@@ -449,8 +491,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
         @SuppressLint("MissingPermission")
         fun startDeviceDiscovery(operation: String){
             val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-            gatt?.discoverServices()
             queue.add(operation)
+            gatt?.discoverServices()
+            sendDataBtn.visibility = View.VISIBLE
         }
 
         @SuppressLint("MissingPermission")
@@ -513,6 +556,11 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             timePickerDialog.show()
         }
 
+        fun switchToNewActivity(){
+            val intent = Intent(this, PillDispenserActivity::class.java)
+            startActivity(intent)
+        }
+
         lateinit var tabLayout: TabLayout
         lateinit var viewPager2: ViewPager2
         lateinit var myViewPagerAdapter: MyViewPagerAdapter
@@ -534,6 +582,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
                     scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
                     textView = findViewById(R.id.statusText)
+                    sendDataBtn = findViewById(R.id.sendData)
+                    setTime = findViewById(R.id.setTime)
 
                     lastDetection = findViewById<TextView>(R.id.lastDetection)
                     startBtn = findViewById(R.id.startBtn)
@@ -542,9 +592,11 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     scanForBluetooth.visibility = View.INVISIBLE
                     startBtn.visibility = View.INVISIBLE
 //                    timeButton.visibility = View.INVISIBLE
+//                    sendDataBtn.visibility = View.INVISIBLE
                     displayNotification = findViewById<TextView>(R.id.showNotification)
 
                     initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
+                    sendDataBtn.setOnClickListener( View.OnClickListener { startDeviceDiscovery("sendData") } )
 //            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
 //            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -554,6 +606,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     }
 
                     startBtn.setOnClickListener(View.OnClickListener { startProcess() })
+
+                    setTime.setOnClickListener(View.OnClickListener { switchToNewActivity() })
                 }
 
                 override fun onTabUnselected(tab: TabLayout.Tab?) {
