@@ -66,9 +66,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     val REQUEST_ENABLE_BLUETOOTH_ADMIN = 2
 
 //    ESP-01 UUIDs
-//    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-//    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-//    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     // ESP-02 UUIDs
 //    val CHARACTERISTIC_UUID = "83755cbd-e485-4153-ac8b-ce260afd3697"
@@ -81,8 +81,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
 
 //    Pill Dispenser
-    val CHARACTERISTIC_UUID = "B3E39CF1-B4D5-4F0A-88DE-6EDE9ABE2BD2"
-    val SERVICE_UUID = "B3E39CF0-B4D5-4F0A-88DE-6EDE9ABE2BD2"
+//    val CHARACTERISTIC_UUID = "B3E39CF1-B4D5-4F0A-88DE-6EDE9ABE2BD2"
+//    val SERVICE_UUID = "B3E39CF0-B4D5-4F0A-88DE-6EDE9ABE2BD2"
 //    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     val connectionSemaphore = Semaphore(1)
@@ -131,6 +131,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
     var deviceService:BluetoothGattService ?= null
 
+    var deviceGatt:BluetoothGatt ?= null
+
     val queue: Queue<String> = LinkedList()
 
     val scanCallback: ScanCallback = object : ScanCallback() {
@@ -158,7 +160,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     runOnUiThread {
                         Toast.makeText(
                             context,
-                            "Connected to ESP32 successfully",
+                            "Connected to Pill Dispenser successfully",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -212,7 +214,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //                            "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
 //                        lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
 //                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
-                        displayNotification!!.text = messageString
+//                        displayNotification!!.text = messageString
                     }
                 } catch (e: JSONException) {
                     Log.i("Error", "Could not parse JSON string")
@@ -226,12 +228,14 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 Log.i("Pill Dispenser", "onServicesDiscovered invoked")
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     val service = gatt.getService(UUID.fromString(SERVICE_UUID))
+                    deviceGatt = gatt
                     deviceService = service
 //                    sendData()
                     val operation = queue.poll()
-                    if(operation.equals("sendData")){
+                    if(!queue.isEmpty() && operation.equals("sendData")){
                         sendData(gatt)
                     }
+//                    sendData(gatt)
                     Log.i("Device info", "Successfully discovered services of target device")
                     if (service != null) {
                         Log.i("Service status", "Service is not null.")
@@ -245,12 +249,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                                     "Characteristic property flags",
                                     discoveredCharacteristic.properties.toString()
                                 )
-//                                val desc = discoveredCharacteristic.getDescriptor(
-//                                    UUID.fromString(DESCRIPTOR_UUID)
-//                                )
-//                                desc.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-//                                gatt.writeDescriptor(desc)
-                                //gatt.requestMtu(512);
                             } else {
                                 Log.i("Set characteristic notification", "Failure!")
                             }
@@ -273,6 +271,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     val data = discoveredCharacteristic.value
                     val value = String(data, StandardCharsets.UTF_8)
                     Log.i("Read data", "Received data: $value")
+                    displayNotification!!.text = value
                 }
             }
 
@@ -308,30 +307,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 }
             }
         }
-
-
-//        @SuppressLint("MissingPermission")
-//        override fun onRequestPermissionsResult(
-//            requestCode: Int,
-//            permissions: Array<String?>,
-//            grantResults: IntArray
-//        ) {
-//            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//            if (requestCode == REQUEST_ENABLE_BT) {
-//                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                    Log.i("Permission", "Bluetooth permission granted")
-//                    adapter.enable()
-//                } else {
-//                    Log.i("Permission", "Bluetooth permission denied")
-//                }
-//            } else if (requestCode == REQUEST_BLUETOOTH_SCAN) {
-//                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                    Log.i("Permission", "Bluetooth scan permission granted")
-//                } else {
-//                    Log.i("Permission", "Bluetooth scan permission denied")
-//                }
-//            }
-//        }
 
     @SuppressLint("MissingPermission")
         val someActivityResultLauncher = registerForActivityResult<Intent, ActivityResult>(
@@ -464,11 +439,12 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 button.setOnClickListener { startConnection(device) }
                 buttonContainer!!.addView(button)
             }
+
         }
 
         @SuppressLint("MissingPermission")
         fun startConnection(device: BluetoothDevice) {
-            if(this.device != null){
+            if(this.device == null){
                 this.device = device
             }
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
@@ -476,7 +452,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             val gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
 
-            startDeviceDiscovery("sendData")
+//            startDeviceDiscovery("sendData")
 
         }
 
@@ -490,16 +466,17 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
         @SuppressLint("MissingPermission")
         fun startDeviceDiscovery(operation: String){
-            val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            val gatt = this.device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             queue.add(operation)
             gatt?.discoverServices()
-            sendDataBtn.visibility = View.VISIBLE
+//            sendDataBtn.visibility = View.VISIBLE
         }
 
         @SuppressLint("MissingPermission")
         fun sendData(gatt: BluetoothGatt){
 
-            val s = "message"
+            queue.add("sendData")
+            val s = "ok"
             val charsetName = "UTF-16"
             val byteArray = s.toByteArray(StandardCharsets.UTF_8)
 
@@ -519,6 +496,36 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     //                    device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
     //                        ?.writeCharacteristic(example, byteArray, 2)
     //                    gatt.writeCharacteristic(example)
+
+                    Log.i("Send Data", "the data was sent!")
+                }
+            }
+
+        }
+
+        @SuppressLint("MissingPermission")
+        fun sendDataCallback(){
+
+            val s = "ok"
+            val charsetName = "UTF-16"
+            val byteArray = s.toByteArray(StandardCharsets.UTF_8)
+
+            deviceService = deviceGatt?.getService(UUID.fromString(SERVICE_UUID))
+
+            if (deviceService != null) {
+                val example: BluetoothGattCharacteristic = deviceService!!.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
+                //                val example: BluetoothGattCharacteristic = BluetoothGattCharacteristic(UUID.fromString(CHARACTERISTIC_UUID), 8, 16)
+
+                if (example != null) {
+                    Log.i("Permission Value", example.permissions.toString() + "")
+                    example.value = byteArray
+                    deviceGatt?.writeCharacteristic(example)
+
+                    //                    Below are write characteristics for API 33
+                    //                    gatt?.writeCharacteristic(example, byteArray, 2)
+                    //                    device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+                    //                        ?.writeCharacteristic(example, byteArray, 2)
+                    //                    gatt.writeCharacteristic(example)
 
                     Log.i("Send Data", "the data was sent!")
                 }
@@ -581,11 +588,11 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     viewPager2.currentItem = tab.position
                     initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
                     scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
-                    textView = findViewById(R.id.statusText)
+//                    textView = findViewById(R.id.statusText)
                     sendDataBtn = findViewById(R.id.sendData)
-                    setTime = findViewById(R.id.setTime)
+//                    setTime = findViewById(R.id.setTime)
 
-                    lastDetection = findViewById<TextView>(R.id.lastDetection)
+//                    lastDetection = findViewById<TextView>(R.id.lastDetection)
                     startBtn = findViewById(R.id.startBtn)
                     //        pairedDevices = findViewById(R.id.pairedDevices);
                     buttonContainer = findViewById<LinearLayout>(R.id.scannedDevices)
@@ -596,7 +603,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     displayNotification = findViewById<TextView>(R.id.showNotification)
 
                     initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
-                    sendDataBtn.setOnClickListener( View.OnClickListener { startDeviceDiscovery("sendData") } )
+//                    sendDataBtn.setOnClickListener( View.OnClickListener { startDeviceDiscovery("sendData") } )
+                    sendDataBtn.setOnClickListener( View.OnClickListener { sendDataCallback() } )
 //            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
 //            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -607,7 +615,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
                     startBtn.setOnClickListener(View.OnClickListener { startProcess() })
 
-                    setTime.setOnClickListener(View.OnClickListener { switchToNewActivity() })
+//                    setTime.setOnClickListener(View.OnClickListener { switchToNewActivity() })
                 }
 
                 override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -627,64 +635,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 }
 
             })
-
-//            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-//            val intent = Intent(this, BluetoothReceiver::class.java)
-//            intent.action = "FOO_ACTION"
-//            intent.putExtra("KEY_FOO_STRING", "Medium AlarmManager Demo")
-//            val pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-//                PendingIntent.FLAG_IMMUTABLE)
-//            val ALARM_DELAY_IN_SECOND = 10
-//            val alarmTimeAtUTC = System.currentTimeMillis() + ALARM_DELAY_IN_SECOND * 1_000L
-//            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarmTimeAtUTC, pendingIntent)
-
-//
-//            initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
-//            scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
-//            textView = findViewById(R.id.statusText)
-//            lastDetection = findViewById<TextView>(R.id.lastDetection)
-//            startBtn = findViewById(R.id.startBtn)
-//            timeButton = findViewById<Button>(R.id.setTime)
-//            //        pairedDevices = findViewById(R.id.pairedDevices);
-//            buttonContainer = findViewById<LinearLayout>(R.id.scannedDevices)
-//            scanForBluetooth.setVisibility(View.INVISIBLE)
-//            startBtn.setVisibility(View.INVISIBLE)
-//            timeButton.setVisibility(View.INVISIBLE)
-//            context = this
-//            initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
-////            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
-////            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
-//            }else {
-//                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
-//            }
-//
-//            startBtn.setOnClickListener(View.OnClickListener { startProcess() })
-//
-//            // Alarm Manager
-//            val alarmInterval = 1000
-//
-//            // Create an Intent for the AlarmReceiver class
-//            val intent = Intent(this, BluetoothReceiver::class.java)
-//            val pendingIntent = PendingIntent.getBroadcast(
-//                this,
-//                0,
-//                intent,
-//                PendingIntent.FLAG_IMMUTABLE // Use FLAG_IMMUTABLE
-//            )
-//
-//            // Get the AlarmManager service and set the repeating alarm
-//            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-//
-//            // Set a repeating alarm starting after 5 seconds and repeat every 5 seconds
-//            alarmManager.setRepeating(
-//                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-//                SystemClock.elapsedRealtime() + alarmInterval,
-//                alarmInterval.toLong(),
-//                pendingIntent
-//            )
-
 
         }
 

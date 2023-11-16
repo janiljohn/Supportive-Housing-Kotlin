@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:background="@color/navy"
     android:layout_height="match_parent"
     tools:context=".fragments.HomeFragment">
 
@@ -22,6 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
         android:layout_marginBottom="350dp"
+        android:background="@color/beige"
         android:text="Enable Bluetooth"
         app:layout_constraintBottom_toTopOf="@+id/textView"
         app:layout_constraintEnd_toEndOf="parent"
@@ -33,6 +35,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
         android:layout_marginBottom="300dp"
+        android:background="@color/beige"
         android:text="Scan for Bluetooth Devices"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -43,31 +46,32 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
+        android:background="@color/beige"
         android:layout_marginBottom="250dp"
         android:text="Start"
         app:layout_constraintTop_toBottomOf="@+id/scanBluetooth" />
 
-    <TextView
-        android:id="@+id/statusText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
-        android:layout_marginBottom="600dp"
-        android:text="Status: "
-        app:layout_constraintBottom_toTopOf="@+id/initializeBluetooth"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+<!--    <TextView-->
+<!--        android:id="@+id/statusText"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_gravity="bottom|center"-->
+<!--        android:layout_marginBottom="600dp"-->
+<!--        android:text="Status: "-->
+<!--        app:layout_constraintBottom_toTopOf="@+id/initializeBluetooth"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent" />-->
 
-    <TextView
-        android:id="@+id/lastDetection"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
-        android:layout_marginBottom="550dp"
-        android:text="Last detection: "
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/statusText" />
+<!--    <TextView-->
+<!--        android:id="@+id/lastDetection"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_gravity="bottom|center"-->
+<!--        android:layout_marginBottom="550dp"-->
+<!--        android:text="Last detection: "-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/statusText" />-->
 
     <LinearLayout
         android:id="@+id/scannedDevices"
@@ -82,18 +86,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/startBtn"></LinearLayout>
 
-    <Button
-        android:id="@+id/setTime"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="144dp"
-        android:layout_marginTop="50dp"
-        android:layout_marginEnd="144dp"
-        android:layout_marginBottom="61dp"
-        android:text="Select Time"
-        app:layout_constraintBottom_toTopOf="@+id/statusText"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+<!--    <Button-->
+<!--        android:id="@+id/setTime"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginStart="144dp"-->
+<!--        android:layout_marginTop="50dp"-->
+<!--        android:layout_marginEnd="144dp"-->
+<!--        android:layout_marginBottom="61dp"-->
+<!--        android:text="Select Time"-->
+<!--        app:layout_constraintBottom_toTopOf="@+id/statusText"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toTopOf="parent" />-->
 
 </FrameLayout>

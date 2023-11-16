@@ -3,24 +3,28 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/navy"
     tools:context=".fragments.HomeFragment">
 
     <TextView
         android:id="@+id/showNotification"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="133dp"
         android:layout_centerInParent="true"
         android:layout_gravity="bottom|center"
-        android:text="Notification Fragment"
         android:layout_marginBottom="350dp"
+        android:background="@color/orange"
+        android:text="Notification Fragment"
+        android:textColor="@color/blue"
         android:textSize="32dp" />
 
     <Button
         android:id="@+id/sendData"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@color/beige"
         android:layout_gravity="bottom|center"
         android:layout_marginBottom="500dp"
-        android:text="Send Data"/>
+        android:text="Send Acknowledgment"/>
 
 </FrameLayout>
