@@ -23,6 +23,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.Parcelable
 import android.os.SystemClock
 import android.util.Log
@@ -40,15 +41,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.viewpager2.widget.ViewPager2
 import com.example.kotlinconversionsupportivehousing.databinding.ActivityMainBinding
-import com.example.kotlinconversionsupportivehousing.fragments.WelcomeFragment
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.json.JSONException
-import org.json.JSONObject
 import java.nio.charset.StandardCharsets
 import java.util.LinkedList
 import java.util.Locale
@@ -64,11 +57,13 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     var REQUEST_BLUETOOTH_SCAN = 3
     val REQUEST_ENABLE_BT = 1
     val REQUEST_ENABLE_BLUETOOTH_ADMIN = 2
+    private lateinit var handler: Handler
+    private lateinit var runnable: Runnable
 
-//    ESP-01 UUIDs
-    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+    //    ESP-01 UUIDs
+    //val CHARACTERISTIC_UUID = "a60a0587-ffda-41df-bf97-059e2246fce0"
+    //val SERVICE_UUID = "83851dc7-830e-448d-9579-a8b7947c0cf5"
+    //val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     // ESP-02 UUIDs
 //    val CHARACTERISTIC_UUID = "83755cbd-e485-4153-ac8b-ce260afd3697"
@@ -84,6 +79,10 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //    val CHARACTERISTIC_UUID = "B3E39CF1-B4D5-4F0A-88DE-6EDE9ABE2BD2"
 //    val SERVICE_UUID = "B3E39CF0-B4D5-4F0A-88DE-6EDE9ABE2BD2"
 //    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+
+    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
+    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
+    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
 
     val connectionSemaphore = Semaphore(1)
     private val permissionrequestcode = 123
@@ -199,29 +198,13 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 val lightDetected: Boolean
                 val vibrationDetected: Boolean
                 try {
-//                    val jsonObject = JSONObject(messageString)
-//                    status = jsonObject.getString("status")
-//                    lastDetected = jsonObject.getInt("lastDetected")
-//                    motionDetected = jsonObject.getBoolean("motion")
-//                    proximityDetected = jsonObject.getBoolean("proximity")
-//                    lightDetected = jsonObject.getBoolean("light")
-//                    vibrationDetected = jsonObject.getBoolean("vibration")
-//                    //float lightIntensity = (float) jsonObject.getDouble("lightIntensity");
-//                    val finalStatus = status
-//                    val finalLastDetected = lastDetected
                     runOnUiThread {
-//                        textView!!.text =
-//                            "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
-//                        lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
-//                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
-//                        displayNotification!!.text = messageString
                     }
                 } catch (e: JSONException) {
                     Log.i("Error", "Could not parse JSON string")
                 }
                 Log.i("Notification", "Updated status: $status")
                 Log.i("Notification", "Last detected: $lastDetected")
-                // Do something with the updated characteristic value
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
@@ -230,12 +213,10 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     val service = gatt.getService(UUID.fromString(SERVICE_UUID))
                     deviceGatt = gatt
                     deviceService = service
-//                    sendData()
                     val operation = queue.poll()
                     if(!queue.isEmpty() && operation.equals("sendData")){
                         sendData(gatt)
                     }
-//                    sendData(gatt)
                     Log.i("Device info", "Successfully discovered services of target device")
                     if (service != null) {
                         Log.i("Service status", "Service is not null.")
@@ -390,17 +371,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                             scannedDevicesList.add(devices[i])
                             bluetoothScanner.stopScan(scanCallback)
                             notFound = false
-//                            break
-                            /*if (devices.get(i).getName().equals("ESP32")) {
-                            targetDeviceAddress = devices.get(i).getName();
-                            device = devices.get(i);
-                            Log.i("Device Found", "Found target device: " + device.getName());
-                            Log.i("Device Address", "Device address is: " + targetDeviceAddress);
-                            scannedDevicesList.add(devices.get(i));
-                            bluetoothScanner.stopScan(scanCallback);
-                            notFound = false;
-                            break;
-                        }*/
                         }
                     }
                     if (device == null) {
@@ -412,8 +382,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     return
                 }
                 createButtons(scannedDevicesList)
-                //            BluetoothGatt gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
-//            connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT);
             }
             initializeBluetooth!!.visibility = View.INVISIBLE
             scanForBluetooth!!.visibility = View.INVISIBLE
@@ -437,6 +405,16 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 val button = Button(this)
                 button.text = device.name
                 button.setOnClickListener { startConnection(device) }
+                handler = Handler()
+                val intent = Intent(this, BluetoothService::class.java)
+                runnable = object : Runnable {
+                    override fun run() {
+                        intent.putExtra("device", device)
+                        startService(intent)
+                        handler.postDelayed(this, 15000)
+                    }
+                }
+                runnable.run()
                 buttonContainer!!.addView(button)
             }
 
@@ -447,21 +425,17 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             if(this.device == null){
                 this.device = device
             }
+            Log.d("MainActivity","started Connected")
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
             var connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
             val gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
-
-//            startDeviceDiscovery("sendData")
-
         }
 
         @SuppressLint("MissingPermission")
         override fun autoConnect(){
             var newDevice =  this.device
-    //                val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
-    //                val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-            Log.d("AlarmReceiver", "Repeating alarm triggered from autoConnect!")
+           Log.d("AlarmReceiver", "Repeating alarm triggered from autoConnect!")
         }
 
         @SuppressLint("MissingPermission")
@@ -469,7 +443,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             val gatt = this.device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             queue.add(operation)
             gatt?.discoverServices()
-//            sendDataBtn.visibility = View.VISIBLE
         }
 
         @SuppressLint("MissingPermission")
@@ -490,13 +463,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     Log.i("Permission Value", example.permissions.toString() + "")
                     example.value = byteArray
                     gatt?.writeCharacteristic(example)
-
-    //                    Below are write characteristics for API 33
-    //                    gatt?.writeCharacteristic(example, byteArray, 2)
-    //                    device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-    //                        ?.writeCharacteristic(example, byteArray, 2)
-    //                    gatt.writeCharacteristic(example)
-
                     Log.i("Send Data", "the data was sent!")
                 }
             }
@@ -514,7 +480,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
             if (deviceService != null) {
                 val example: BluetoothGattCharacteristic = deviceService!!.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
-                //                val example: BluetoothGattCharacteristic = BluetoothGattCharacteristic(UUID.fromString(CHARACTERISTIC_UUID), 8, 16)
 
                 if (example != null) {
                     Log.i("Permission Value", example.permissions.toString() + "")
