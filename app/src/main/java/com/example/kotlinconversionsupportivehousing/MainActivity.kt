@@ -66,9 +66,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     val REQUEST_ENABLE_BLUETOOTH_ADMIN = 2
 
 //    ESP-01 UUIDs
-    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+//    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+//    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+//    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     // ESP-02 UUIDs
 //    val CHARACTERISTIC_UUID = "83755cbd-e485-4153-ac8b-ce260afd3697"
@@ -76,9 +76,9 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //    val DESCRIPTOR_UUID = "4d6ec567-93f0-4541-8152-81b35dc5cb8b"
 
 //    BLANK
-//    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
-//    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
-//    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
+    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
+    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
+    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
 
 //    Pill Dispenser
 //    val CHARACTERISTIC_UUID = "B3E39CF1-B4D5-4F0A-88DE-6EDE9ABE2BD2"
@@ -108,6 +108,16 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     lateinit var context: Context
     lateinit var sendDataBtn: Button
     lateinit var setTime: Button
+    var schedule = mutableMapOf("Sunday" to "N/A", "Monday" to "N/A", "Tuesday" to "N/A", "Wednesday" to "N/A", "Thursday" to "N/A", "Friday" to "N/A", "Saturday" to "N/A")
+
+    lateinit var setSunday: Button
+    lateinit var setMonday: Button
+    lateinit var setTuesday: Button
+    lateinit var setWednesday: Button
+    lateinit var setThursday: Button
+    lateinit var setFriday: Button
+    lateinit var setSaturday: Button
+
 
     lateinit var buttonContainer: LinearLayout
     val list = listOf<String>(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN,
@@ -371,7 +381,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
     @SuppressLint("MissingPermission")
         open fun startProcess() {
-
             var device: BluetoothDevice? = null
             var targetDeviceAddress = ""
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
@@ -506,7 +515,39 @@ class MainActivity : AppCompatActivity(), AutoConnect {
         @SuppressLint("MissingPermission")
         fun sendDataCallback(){
 
+            Log.i("Send Data", "callback function was triggered")
             val s = "ok"
+            val charsetName = "UTF-16"
+            val byteArray = s.toByteArray(StandardCharsets.UTF_8)
+
+            deviceService = deviceGatt?.getService(UUID.fromString(SERVICE_UUID))
+
+            if (deviceService != null) {
+                val example: BluetoothGattCharacteristic = deviceService!!.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
+                //                val example: BluetoothGattCharacteristic = BluetoothGattCharacteristic(UUID.fromString(CHARACTERISTIC_UUID), 8, 16)
+
+                if (example != null) {
+                    Log.i("Permission Value", example.permissions.toString() + "")
+                    example.value = byteArray
+                    deviceGatt?.writeCharacteristic(example)
+
+                    //                    Below are write characteristics for API 33
+                    //                    gatt?.writeCharacteristic(example, byteArray, 2)
+                    //                    device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+                    //                        ?.writeCharacteristic(example, byteArray, 2)
+                    //                    gatt.writeCharacteristic(example)
+
+                    Log.i("Send Data", "the data was sent!")
+                }
+            }
+
+        }
+
+        @SuppressLint("MissingPermission")
+        fun sendToDevice(message: String){
+
+            Log.i("Send Data", "callback function was triggered")
+            val s = message
             val charsetName = "UTF-16"
             val byteArray = s.toByteArray(StandardCharsets.UTF_8)
 
@@ -563,6 +604,23 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             timePickerDialog.show()
         }
 
+        fun setTime(day: String) {
+            val onTimeSetListener = OnTimeSetListener { timePicker, selectedHour, selectedMinute ->
+                hour = selectedHour
+                minute = selectedMinute
+                schedule[day] = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+                Log.i("Schedule", schedule.toString())
+                sendToDevice(schedule.toString())
+//                timeButton.text =
+//                    String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+            }
+            val style = android.R.style.Theme_Holo_Light_Dialog_NoActionBar
+            val timePickerDialog =
+                TimePickerDialog(this, style, onTimeSetListener, hour, minute, true)
+            timePickerDialog.setTitle("Select Time")
+            timePickerDialog.show()
+        }
+
         fun switchToNewActivity(){
             val intent = Intent(this, PillDispenserActivity::class.java)
             startActivity(intent)
@@ -607,6 +665,28 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     sendDataBtn.setOnClickListener( View.OnClickListener { sendDataCallback() } )
 //            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
 //            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
+
+                    setSunday = findViewById<Button>(R.id.Sunday)
+                    setSunday.setOnClickListener(View.OnClickListener { setTime("Sunday") })
+
+                    setMonday = findViewById<Button>(R.id.Monday)
+                    setMonday.setOnClickListener(View.OnClickListener { setTime("Monday") })
+
+                    setTuesday = findViewById<Button>(R.id.Tuesday)
+                    setTuesday.setOnClickListener(View.OnClickListener { setTime("Tuesday") })
+
+                    setWednesday = findViewById<Button>(R.id.Wednesday)
+                    setWednesday.setOnClickListener(View.OnClickListener { setTime("Wednesday") })
+
+                    setThursday = findViewById<Button>(R.id.Thursday)
+                    setThursday.setOnClickListener(View.OnClickListener { setTime("Thursday") })
+
+                    setFriday = findViewById<Button>(R.id.Friday)
+                    setFriday.setOnClickListener(View.OnClickListener { setTime("Friday") })
+
+                    setSaturday = findViewById<Button>(R.id.Saturday)
+                    setSaturday.setOnClickListener(View.OnClickListener { setTime("Saturday") })
+
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
                     }else {
