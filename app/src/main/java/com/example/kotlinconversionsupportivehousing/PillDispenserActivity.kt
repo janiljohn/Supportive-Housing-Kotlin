@@ -546,64 +546,6 @@ class PillDispenserActivity : AppCompatActivity(), AutoConnect {
 
         startBtn.setOnClickListener(View.OnClickListener { startProcess() })
 
-//            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-//            val intent = Intent(this, BluetoothReceiver::class.java)
-//            intent.action = "FOO_ACTION"
-//            intent.putExtra("KEY_FOO_STRING", "Medium AlarmManager Demo")
-//            val pendingIntent = PendingIntent.getBroadcast(this, 0, intent,
-//                PendingIntent.FLAG_IMMUTABLE)
-//            val ALARM_DELAY_IN_SECOND = 10
-//            val alarmTimeAtUTC = System.currentTimeMillis() + ALARM_DELAY_IN_SECOND * 1_000L
-//            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarmTimeAtUTC, pendingIntent)
-
-//
-//            initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
-//            scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
-//            textView = findViewById(R.id.statusText)
-//            lastDetection = findViewById<TextView>(R.id.lastDetection)
-//            startBtn = findViewById(R.id.startBtn)
-//            timeButton = findViewById<Button>(R.id.setTime)
-//            //        pairedDevices = findViewById(R.id.pairedDevices);
-//            buttonContainer = findViewById<LinearLayout>(R.id.scannedDevices)
-//            scanForBluetooth.setVisibility(View.INVISIBLE)
-//            startBtn.setVisibility(View.INVISIBLE)
-//            timeButton.setVisibility(View.INVISIBLE)
-//            context = this
-//            initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
-////            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
-////            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
-//            }else {
-//                scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
-//            }
-//
-//            startBtn.setOnClickListener(View.OnClickListener { startProcess() })
-//
-//            // Alarm Manager
-//            val alarmInterval = 1000
-//
-//            // Create an Intent for the AlarmReceiver class
-//            val intent = Intent(this, BluetoothReceiver::class.java)
-//            val pendingIntent = PendingIntent.getBroadcast(
-//                this,
-//                0,
-//                intent,
-//                PendingIntent.FLAG_IMMUTABLE // Use FLAG_IMMUTABLE
-//            )
-//
-//            // Get the AlarmManager service and set the repeating alarm
-//            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-//
-//            // Set a repeating alarm starting after 5 seconds and repeat every 5 seconds
-//            alarmManager.setRepeating(
-//                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-//                SystemClock.elapsedRealtime() + alarmInterval,
-//                alarmInterval.toLong(),
-//                pendingIntent
-//            )
-
-
     }
 
     @SuppressLint("MissingPermission")
