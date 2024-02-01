@@ -8,8 +8,10 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
-import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
 import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
@@ -33,7 +35,9 @@ class BluetoothService : Service() {
     var deviceGatt: BluetoothGatt? = null
     val queue: Queue<String> = LinkedList()
     val handlerLoop = Handler(Looper.getMainLooper())
-
+    private var scanner: BluetoothLeScanner? = null
+    private val bluetoothAdapter: BluetoothAdapter? = null
+    private var gatt: BluetoothGatt? = null
 
     override fun onBind(intent: Intent): IBinder {
         TODO("Return the communication channel to the service.")
@@ -198,44 +202,75 @@ class BluetoothService : Service() {
     @SuppressLint("MissingPermission")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Service is starting, handle intent here
-        var value = intent?.getStringExtra("device")
-        var normalvalue: String? = null
-        if (intent != null) {
-            val extras = intent.extras
-            if (extras != null) {
-                if (extras.containsKey("device")) {
-                    val obj = extras["device"]
-                    if (obj is String) {
-                        value = obj
-                    } else {
-                        // Handle the case where obj is not a String
-                        // For example, log an error or throw an exception
-                        Log.e(
-                            "IntentError",
-                            "Expected a String for 'device', but found: " + obj!!.javaClass.simpleName
-                        )
-                    }
-                }
-            }
-        }
-        if (normalvalue != null) {
-            Log.d("Bluetooth Service",normalvalue)
-        }
+       // var value = intent?.getStringExtra("device")
+//        var normalvalue: String? = null
+//        if (intent != null) {
+//            val extras = intent.extras
+//            if (extras != null) {
+//                if (extras.containsKey("device")) {
+//                    val obj = extras["device"]
+//                    if (obj is String) {
+//                        value = obj
+//                    } else {
+//                        // Handle the case where obj is not a String
+//                        // For example, log an error or throw an exception
+//                        Log.e(
+//                            "IntentError",
+//                            "Expected a String for 'device', but found: " + obj!!.javaClass.simpleName
+//                        )
+//                    }
+//                }
+//            }
+//        }
+//        if (normalvalue != null) {
+//            Log.d("Bluetooth Service",normalvalue)
+//        }
         Log.d("BluetoothService","Service of Bluetooth")
         val runnable = Runnable {
-            if(this.device == null){
-                this.device = device
-            }
-            Log.d("BluetoothService","startcommand call  Connected")
+//            if(this.device == null){
+//                this.device = device
+//            }
+            Log.i("BluetoothService","onScanResult Function")
+            scanner = bluetoothAdapter?.getBluetoothLeScanner();
+            Toast.makeText(getApplicationContext(), "Beginning continuous scan...", Toast.LENGTH_LONG).show();
+            scanner?.startScan(scanCallback);
+            /*Log.d("BluetoothService","startcommand call  Connected")
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
             var connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
-            val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)*/
 
         }
         handlerLoop.postDelayed(runnable, 5000)
 
 
         return START_STICKY
+    }
+
+    val scanCallback: ScanCallback = object : ScanCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            Log.i("BluetoothService","onScanResult Function")
+            super.onScanResult(callbackType, result)
+            val device = result.device
+            if (device != null && device.name != null && device.name == "ESP32") {
+                Log.i("BluetoothService","Start Scanning using ESP32")
+                scanner!!.stopScan(this)
+                onTargetDeviceFound(device)
+               //callback.onTargetDeviceFound(device)
+            }
+            Log.i("Scan passed", "Could  complete scan for nearby BLE devices")
+            devices.add(result.device)
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            Log.i("Scan failed", "Could not complete scan for nearby BLE devices")
+            return
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun onTargetDeviceFound(device: BluetoothDevice) {
+        gatt = device.connectGatt(this, true, gattCallback, BluetoothDevice.TRANSPORT_LE)
     }
 
     override fun onDestroy() {
