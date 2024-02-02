@@ -38,6 +38,7 @@ class BluetoothService : Service() {
     val handlerLoop = Handler(Looper.getMainLooper())
     private var scanner: BluetoothLeScanner? = null
     private var gatt: BluetoothGatt? = null
+    //https://stackoverflow.com/questions/70475132/using-bluetoothmanager-and-getadapater
     fun Context.bluetoothAdapter(): BluetoothAdapter? =
         (this.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
 
@@ -231,6 +232,7 @@ class BluetoothService : Service() {
             return
         }
     }
+
 
     @SuppressLint("MissingPermission")
     fun onTargetDeviceFound(device: BluetoothDevice) {
