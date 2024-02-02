@@ -283,7 +283,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
                 Log.i("Pill Dispenser", "onCharacteristicWrite invoked")
                 Log.i("Pill Dispenser", "onCharacteristicWrite invoked: " + characteristic.uuid)
-//                val toString = characteristic.toString()
                 val data = characteristic.value
                 val info = gatt.readCharacteristic(characteristic)
                 info.toString()
@@ -416,11 +415,12 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 button.setOnClickListener { startConnection(device) }
                 handler = Handler()
                 val intent = Intent(this, BluetoothService::class.java)
+               // startService(intent)
                 runnable = object : Runnable {
                     override fun run() {
                         intent.putExtra("device", device)
                         startService(intent)
-                        handler.postDelayed(this, 15000)
+                        handler.postDelayed(this, 45000)
                     }
                 }
                 runnable.run()
