@@ -29,29 +29,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
-        android:id="@+id/scanBluetooth"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
-        android:layout_marginBottom="300dp"
-        android:background="@color/beige"
-        android:text="Scan for Bluetooth Devices"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/initializeBluetooth" />
-
-    <Button
-        android:id="@+id/startBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
-        android:background="@color/beige"
-        android:layout_marginBottom="250dp"
-        android:text="Start"
-        app:layout_constraintTop_toBottomOf="@+id/scanBluetooth" />
-
-<!--    <TextView-->
+    <!--    <TextView-->
 <!--        android:id="@+id/statusText"-->
 <!--        android:layout_width="wrap_content"-->
 <!--        android:layout_height="wrap_content"-->
@@ -72,6 +50,37 @@
 <!--        app:layout_constraintEnd_toEndOf="parent"-->
 <!--        app:layout_constraintStart_toStartOf="parent"-->
 <!--        app:layout_constraintTop_toBottomOf="@+id/statusText" />-->
+
+    <Button
+        android:id="@+id/scanBluetooth"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="300dp"
+        android:background="@color/beige"
+        android:text="Scan for Bluetooth Devices"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/initializeBluetooth" />
+
+    <Button
+        android:id="@+id/startBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="250dp"
+        android:background="@color/beige"
+        android:text="Start"
+        app:layout_constraintTop_toBottomOf="@+id/scanBluetooth" />
+
+    <Button
+        android:id="@+id/startServiceBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginBottom="250dp"
+        android:background="@color/beige"
+        android:text="Start Service"/>
 
     <LinearLayout
         android:id="@+id/scannedDevices"

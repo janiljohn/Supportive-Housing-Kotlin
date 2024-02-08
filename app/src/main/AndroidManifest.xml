@@ -11,6 +11,7 @@
         android:name="android.permission.BLUETOOTH_SCAN"
         tools:remove="android:maxSdkVersion" /> <!-- Alarm Manager -->
     <uses-permission android:name="android.permission.SET_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -26,6 +27,7 @@
             android:name=".BluetoothService"
             android:enabled="true"
             android:exported="true"></service>
+        <service android:name=".BackgroundScan" />
 
         <activity
             android:name=".PillDispenserActivity"

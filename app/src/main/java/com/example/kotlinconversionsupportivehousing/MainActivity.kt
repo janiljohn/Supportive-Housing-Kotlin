@@ -2,9 +2,6 @@ package com.example.kotlinconversionsupportivehousing
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.app.TimePickerDialog.OnTimeSetListener
 import android.bluetooth.BluetoothAdapter
@@ -12,20 +9,21 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
+import android.os.IBinder
+import android.os.ParcelUuid
 import android.os.Parcelable
-import android.os.SystemClock
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -41,6 +39,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.viewpager2.widget.ViewPager2
 import com.example.kotlinconversionsupportivehousing.databinding.ActivityMainBinding
+import com.google.android.material.tabs.TabLayout
 import org.json.JSONException
 import java.nio.charset.StandardCharsets
 import java.util.LinkedList
@@ -48,22 +47,19 @@ import java.util.Locale
 import java.util.Queue
 import java.util.UUID
 import java.util.concurrent.Semaphore
-import com.google.android.material.tabs.TabLayout
 
-class MainActivity : AppCompatActivity(), AutoConnect {
+class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     var REQUEST_BLUETOOTH_SCAN = 3
     val REQUEST_ENABLE_BT = 1
     val REQUEST_ENABLE_BLUETOOTH_ADMIN = 2
-    private lateinit var handler: Handler
-    private lateinit var runnable: Runnable
 
 //    ESP-01 UUIDs
-//    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-//    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-//    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     // ESP-02 UUIDs
 //    val CHARACTERISTIC_UUID = "83755cbd-e485-4153-ac8b-ce260afd3697"
@@ -71,18 +67,14 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 //    val DESCRIPTOR_UUID = "4d6ec567-93f0-4541-8152-81b35dc5cb8b"
 
 //    BLANK
-    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
+//    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
+//    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
+//    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
 
 //    Pill Dispenser
 //    val CHARACTERISTIC_UUID = "B3E39CF1-B4D5-4F0A-88DE-6EDE9ABE2BD2"
 //    val SERVICE_UUID = "B3E39CF0-B4D5-4F0A-88DE-6EDE9ABE2BD2"
 //    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
-
-        //val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
-    //val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
-    //val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
 
     val connectionSemaphore = Semaphore(1)
     private val permissionrequestcode = 123
@@ -96,6 +88,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
         }
 
 
+    private var startBackgroundScan: Intent? = null
+
     lateinit var initializeBluetooth: Button
     lateinit var scanForBluetooth: Button
     lateinit var startBtn: Button
@@ -107,6 +101,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
     lateinit var context: Context
     lateinit var sendDataBtn: Button
     lateinit var setTime: Button
+    lateinit var startServiceBtn: Button
     var schedule = mutableMapOf("Sunday" to "N/A", "Monday" to "N/A", "Tuesday" to "N/A", "Wednesday" to "N/A", "Thursday" to "N/A", "Friday" to "N/A", "Saturday" to "N/A")
 
     lateinit var setSunday: Button
@@ -144,6 +139,16 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
     val queue: Queue<String> = LinkedList()
 
+    private var serviceInstance: BackgroundScan? = null
+
+//    private var serviceScannedDevices: kotlin.collections.MutableList<MyBluetoothDevice> = java.util.ArrayList<MyBluetoothDevice>()
+//    val serviceScannedDevices = kotlin.collections.List<MyBluetoothDevice>
+    val serviceScannedDevices: MutableList<MyBluetoothDevice> = mutableListOf()
+
+    //    private var deviceNameMapping: kotlin.collections.MutableMap<kotlin.String, kotlin.collections.MutableList<MyBluetoothDevice?>> = java.util.HashMap<kotlin.String, kotlin.collections.MutableList<MyBluetoothDevice>>()
+//    val deviceNameMapping = kotlin.collections.MutableMap<String, List<MyBluetoothDevice>>
+    val deviceNameMapping: MutableMap<String, MutableList<MyBluetoothDevice>> = mutableMapOf()
+
     val scanCallback: ScanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 Log.i("Scan passed", "Could  complete scan for nearby BLE devices")
@@ -156,7 +161,18 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             }
         }
 
+    private val mConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            val binder: BackgroundScan.MyBinder = service as BackgroundScan.MyBinder
+            serviceInstance = binder.getInstance()
+            serviceInstance?.registerClient(this@MainActivity)
+            Log.i("SERVICE BIND", "Success")
+        }
 
+        override fun onServiceDisconnected(name: ComponentName) {
+            Log.i("SERVICE BIND", "Disconnected")
+        }
+    }
 
     @SuppressLint("MissingPermission")
     val gattCallback: BluetoothGattCallback = object : BluetoothGattCallback() {
@@ -208,13 +224,29 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 val lightDetected: Boolean
                 val vibrationDetected: Boolean
                 try {
+//                    val jsonObject = JSONObject(messageString)
+//                    status = jsonObject.getString("status")
+//                    lastDetected = jsonObject.getInt("lastDetected")
+//                    motionDetected = jsonObject.getBoolean("motion")
+//                    proximityDetected = jsonObject.getBoolean("proximity")
+//                    lightDetected = jsonObject.getBoolean("light")
+//                    vibrationDetected = jsonObject.getBoolean("vibration")
+//                    //float lightIntensity = (float) jsonObject.getDouble("lightIntensity");
+//                    val finalStatus = status
+//                    val finalLastDetected = lastDetected
                     runOnUiThread {
+//                        textView!!.text =
+//                            "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
+//                        lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
+//                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
+//                        displayNotification!!.text = messageString
                     }
                 } catch (e: JSONException) {
                     Log.i("Error", "Could not parse JSON string")
                 }
                 Log.i("Notification", "Updated status: $status")
                 Log.i("Notification", "Last detected: $lastDetected")
+                // Do something with the updated characteristic value
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
@@ -223,10 +255,12 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     val service = gatt.getService(UUID.fromString(SERVICE_UUID))
                     deviceGatt = gatt
                     deviceService = service
+//                    sendData()
                     val operation = queue.poll()
                     if(!queue.isEmpty() && operation.equals("sendData")){
                         sendData(gatt)
                     }
+//                    sendData(gatt)
                     Log.i("Device info", "Successfully discovered services of target device")
                     if (service != null) {
                         Log.i("Service status", "Service is not null.")
@@ -283,6 +317,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
                 Log.i("Pill Dispenser", "onCharacteristicWrite invoked")
                 Log.i("Pill Dispenser", "onCharacteristicWrite invoked: " + characteristic.uuid)
+//                val toString = characteristic.toString()
                 val data = characteristic.value
                 val info = gatt.readCharacteristic(characteristic)
                 info.toString()
@@ -379,6 +414,17 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                             scannedDevicesList.add(devices[i])
                             bluetoothScanner.stopScan(scanCallback)
                             notFound = false
+//                            break
+                            /*if (devices.get(i).getName().equals("ESP32")) {
+                            targetDeviceAddress = devices.get(i).getName();
+                            device = devices.get(i);
+                            Log.i("Device Found", "Found target device: " + device.getName());
+                            Log.i("Device Address", "Device address is: " + targetDeviceAddress);
+                            scannedDevicesList.add(devices.get(i));
+                            bluetoothScanner.stopScan(scanCallback);
+                            notFound = false;
+                            break;
+                        }*/
                         }
                     }
                     if (device == null) {
@@ -390,6 +436,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     return
                 }
                 createButtons(scannedDevicesList)
+                //            BluetoothGatt gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
+//            connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT);
             }
             initializeBluetooth!!.visibility = View.INVISIBLE
             scanForBluetooth!!.visibility = View.INVISIBLE
@@ -413,17 +461,6 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                 val button = Button(this)
                 button.text = device.name
                 button.setOnClickListener { startConnection(device) }
-                handler = Handler()
-                val intent = Intent(this, BluetoothService::class.java)
-               // startService(intent)
-                runnable = object : Runnable {
-                    override fun run() {
-                        intent.putExtra("device", device)
-                        startService(intent)
-                        handler.postDelayed(this, 45000)
-                    }
-                }
-                runnable.run()
                 buttonContainer!!.addView(button)
             }
 
@@ -434,17 +471,23 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             if(this.device == null){
                 this.device = device
             }
-            Log.d("MainActivity","started Connected")
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
             var connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
             val gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
+
+//            startDeviceDiscovery("sendData")
+            Log.i("Bluetooth Device Check", device.toString())
+
+
         }
 
         @SuppressLint("MissingPermission")
         override fun autoConnect(){
             var newDevice =  this.device
-           Log.d("AlarmReceiver", "Repeating alarm triggered from autoConnect!")
+    //                val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+    //                val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            Log.d("AlarmReceiver", "Repeating alarm triggered from autoConnect!")
         }
 
         @SuppressLint("MissingPermission")
@@ -452,6 +495,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             val gatt = this.device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             queue.add(operation)
             gatt?.discoverServices()
+//            sendDataBtn.visibility = View.VISIBLE
         }
 
         @SuppressLint("MissingPermission")
@@ -466,12 +510,12 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
             if (deviceService != null) {
                 val example: BluetoothGattCharacteristic = deviceService!!.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
-    //                val example: BluetoothGattCharacteristic = BluetoothGattCharacteristic(UUID.fromString(CHARACTERISTIC_UUID), 8, 16)
 
                 if (example != null) {
                     Log.i("Permission Value", example.permissions.toString() + "")
                     example.value = byteArray
                     gatt?.writeCharacteristic(example)
+
                     Log.i("Send Data", "the data was sent!")
                 }
             }
@@ -490,6 +534,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
 
             if (deviceService != null) {
                 val example: BluetoothGattCharacteristic = deviceService!!.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
+                //                val example: BluetoothGattCharacteristic = BluetoothGattCharacteristic(UUID.fromString(CHARACTERISTIC_UUID), 8, 16)
 
                 if (example != null) {
                     Log.i("Permission Value", example.permissions.toString() + "")
@@ -591,6 +636,52 @@ class MainActivity : AppCompatActivity(), AutoConnect {
             startActivity(intent)
         }
 
+        private fun launchBackgroundScan() {
+//            startBackgroundScan = Intent(this, BackgroundScan::class.java)
+            startBackgroundScan = android.content.Intent(this, BackgroundScan::class.java)
+            startBackgroundScan!!.putExtra("service_uuid", SERVICE_UUID)
+            startBackgroundScan!!.putExtra("characteristic_uuid", CHARACTERISTIC_UUID)
+            startService(startBackgroundScan)
+            bindService(startBackgroundScan, mConnection, BIND_AUTO_CREATE)
+//            devicesList.setVisibility(View.VISIBLE)
+//            stopBackgroundScanBtn.setVisibility(View.VISIBLE)
+        }
+
+        override fun onDeviceScan(result: android.bluetooth.le.ScanResult?) {
+            var device: BluetoothDevice? = result?.getDevice()
+            var uuids: kotlin.collections.MutableList<ParcelUuid?>? =
+                result?.getScanRecord()?.getServiceUuids()
+            addDeviceToList(device, uuids)
+        }
+
+
+        override fun onTargetDeviceFound(device: BluetoothDevice?) {
+            Log.i("BACKGROUND SERVICE", "onTargetDeviceFound running")
+            val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+//                       device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        }
+
+        open fun addDeviceToList(device: BluetoothDevice?, uuids: kotlin.collections.MutableList<ParcelUuid?>?) {
+            if (((device != null) && (device.getName() != null) && !device.getName().isEmpty())) {
+                if (!serviceScannedDevices.contains(MyBluetoothDevice(device, uuids))) {
+                    if ((device.getName() == "ESP32")) {
+                        serviceScannedDevices?.add(0, MyBluetoothDevice(device, uuids))
+                    } else {
+                        serviceScannedDevices?.add(MyBluetoothDevice(device, uuids))
+                    }
+                    if (deviceNameMapping.containsKey(device.getName())) {
+                        deviceNameMapping?.get(device.getName())?.add(MyBluetoothDevice(device, uuids))
+                    } else {
+                        val devicesList: MutableList<MyBluetoothDevice> = mutableListOf()
+                        devicesList?.add(MyBluetoothDevice(device, uuids))
+                        deviceNameMapping?.put(device.getName().uppercase(java.util.Locale.getDefault()), devicesList)
+                    }
+//                    adapter.updateDataset(serviceScannedDevices)
+
+                }
+            }
+        }
+
         lateinit var tabLayout: TabLayout
         lateinit var viewPager2: ViewPager2
         lateinit var myViewPagerAdapter: MyViewPagerAdapter
@@ -611,44 +702,30 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     viewPager2.currentItem = tab.position
                     initializeBluetooth = findViewById<Button>(R.id.initializeBluetooth)
                     scanForBluetooth = findViewById<Button>(R.id.scanBluetooth)
-//                    textView = findViewById(R.id.statusText)
                     sendDataBtn = findViewById(R.id.sendData)
-//                    setTime = findViewById(R.id.setTime)
 
-//                    lastDetection = findViewById<TextView>(R.id.lastDetection)
                     startBtn = findViewById(R.id.startBtn)
-                    //        pairedDevices = findViewById(R.id.pairedDevices);
                     buttonContainer = findViewById<LinearLayout>(R.id.scannedDevices)
                     scanForBluetooth.visibility = View.INVISIBLE
                     startBtn.visibility = View.INVISIBLE
-//                    timeButton.visibility = View.INVISIBLE
-//                    sendDataBtn.visibility = View.INVISIBLE
                     displayNotification = findViewById<TextView>(R.id.showNotification)
+                    startServiceBtn = findViewById<Button>(R.id.startServiceBtn)
 
                     initializeBluetooth.setOnClickListener(View.OnClickListener { initializeAdapters() })
-//                    sendDataBtn.setOnClickListener( View.OnClickListener { startDeviceDiscovery("sendData") } )
                     sendDataBtn.setOnClickListener( View.OnClickListener { sendDataCallback() } )
-//            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetooth() })
-//            scanForBluetooth.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissions() })
 
                     setSunday = findViewById<Button>(R.id.Sunday)
                     setSunday.setOnClickListener(View.OnClickListener { setTime("Sunday") })
-
                     setMonday = findViewById<Button>(R.id.Monday)
                     setMonday.setOnClickListener(View.OnClickListener { setTime("Monday") })
-
                     setTuesday = findViewById<Button>(R.id.Tuesday)
                     setTuesday.setOnClickListener(View.OnClickListener { setTime("Tuesday") })
-
                     setWednesday = findViewById<Button>(R.id.Wednesday)
                     setWednesday.setOnClickListener(View.OnClickListener { setTime("Wednesday") })
-
                     setThursday = findViewById<Button>(R.id.Thursday)
                     setThursday.setOnClickListener(View.OnClickListener { setTime("Thursday") })
-
                     setFriday = findViewById<Button>(R.id.Friday)
                     setFriday.setOnClickListener(View.OnClickListener { setTime("Friday") })
-
                     setSaturday = findViewById<Button>(R.id.Saturday)
                     setSaturday.setOnClickListener(View.OnClickListener { setTime("Saturday") })
 
@@ -659,8 +736,8 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                     }
 
                     startBtn.setOnClickListener(View.OnClickListener { startProcess() })
+                    startServiceBtn.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissionsService() })
 
-//                    setTime.setOnClickListener(View.OnClickListener { switchToNewActivity() })
                 }
 
                 override fun onTabUnselected(tab: TabLayout.Tab?) {
@@ -704,6 +781,7 @@ class MainActivity : AppCompatActivity(), AutoConnect {
         }
 
         private fun showAlert() {
+            Log.i("Permission", "showAlert function triggered")
             val builder = android.app.AlertDialog.Builder(this)
             builder.setTitle("Need permission(s)")
             builder.setMessage("Bluetooth permissions are required to do the task.")
@@ -757,15 +835,37 @@ class MainActivity : AppCompatActivity(), AutoConnect {
                         Toast.makeText(this, "Permissions already granted.", Toast.LENGTH_SHORT).show()
                         Log.i("Permission", "Scan Permission granted")
                         bluetoothScanner.startScan(scanCallback)
+                        launchBackgroundScan()
                         startBtn!!.visibility = View.VISIBLE
                     } else {
                         showAlert()
-                        // Permission denied, handle accordingly (e.g., show a message or disable functionality)
                     }
                 }
             }
         }
 
+    // Services
+
+    @SuppressLint("MissingPermission")
+    fun scanForBluetoothWithPermissionsService(){
+        if (isPermissionsGranted() != PackageManager.PERMISSION_GRANTED) {
+            showAlertService()
+        } else {
+            Toast.makeText(this, "Permissions already granted.", Toast.LENGTH_SHORT).show()
+            Log.i("Permission", "Scan Permission granted")
+            launchBackgroundScan()
+        }
+    }
+
+    private fun showAlertService() {
+        Log.i("Permission", "showAlert function triggered")
+        val builder = android.app.AlertDialog.Builder(this)
+        builder.setTitle("Need permission(s)")
+        builder.setMessage("Bluetooth permissions are required to do the task.")
+        builder.setPositiveButton("OK", { dialog, which -> requestPermissions() })
+        builder.setNeutralButton("Cancel", null)
+        val dialog = builder.create()
+        dialog.show()
+    }
+
 }
-
-
