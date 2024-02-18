@@ -48,7 +48,7 @@ import java.util.Queue
 import java.util.UUID
 import java.util.concurrent.Semaphore
 
-class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
+class MainActivity : AppCompatActivity(), IBackgroundScan {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
@@ -141,12 +141,8 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
 
     private var serviceInstance: BackgroundScan? = null
 
-//    private var serviceScannedDevices: kotlin.collections.MutableList<MyBluetoothDevice> = java.util.ArrayList<MyBluetoothDevice>()
-//    val serviceScannedDevices = kotlin.collections.List<MyBluetoothDevice>
     val serviceScannedDevices: MutableList<MyBluetoothDevice> = mutableListOf()
 
-    //    private var deviceNameMapping: kotlin.collections.MutableMap<kotlin.String, kotlin.collections.MutableList<MyBluetoothDevice?>> = java.util.HashMap<kotlin.String, kotlin.collections.MutableList<MyBluetoothDevice>>()
-//    val deviceNameMapping = kotlin.collections.MutableMap<String, List<MyBluetoothDevice>>
     val deviceNameMapping: MutableMap<String, MutableList<MyBluetoothDevice>> = mutableMapOf()
 
     val scanCallback: ScanCallback = object : ScanCallback() {
@@ -436,8 +432,6 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
                     return
                 }
                 createButtons(scannedDevicesList)
-                //            BluetoothGatt gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
-//            connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT);
             }
             initializeBluetooth!!.visibility = View.INVISIBLE
             scanForBluetooth!!.visibility = View.INVISIBLE
@@ -475,19 +469,7 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
             var connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
             val gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
-
-//            startDeviceDiscovery("sendData")
             Log.i("Bluetooth Device Check", device.toString())
-
-
-        }
-
-        @SuppressLint("MissingPermission")
-        override fun autoConnect(){
-            var newDevice =  this.device
-    //                val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
-    //                val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-            Log.d("AlarmReceiver", "Repeating alarm triggered from autoConnect!")
         }
 
         @SuppressLint("MissingPermission")
@@ -534,19 +516,11 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
 
             if (deviceService != null) {
                 val example: BluetoothGattCharacteristic = deviceService!!.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
-                //                val example: BluetoothGattCharacteristic = BluetoothGattCharacteristic(UUID.fromString(CHARACTERISTIC_UUID), 8, 16)
 
                 if (example != null) {
                     Log.i("Permission Value", example.permissions.toString() + "")
                     example.value = byteArray
                     deviceGatt?.writeCharacteristic(example)
-
-                    //                    Below are write characteristics for API 33
-                    //                    gatt?.writeCharacteristic(example, byteArray, 2)
-                    //                    device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-                    //                        ?.writeCharacteristic(example, byteArray, 2)
-                    //                    gatt.writeCharacteristic(example)
-
                     Log.i("Send Data", "the data was sent!")
                 }
             }
@@ -565,53 +539,15 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
 
             if (deviceService != null) {
                 val example: BluetoothGattCharacteristic = deviceService!!.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
-                //                val example: BluetoothGattCharacteristic = BluetoothGattCharacteristic(UUID.fromString(CHARACTERISTIC_UUID), 8, 16)
 
                 if (example != null) {
                     Log.i("Permission Value", example.permissions.toString() + "")
                     example.value = byteArray
                     deviceGatt?.writeCharacteristic(example)
-
-                    //                    Below are write characteristics for API 33
-                    //                    gatt?.writeCharacteristic(example, byteArray, 2)
-                    //                    device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-                    //                        ?.writeCharacteristic(example, byteArray, 2)
-                    //                    gatt.writeCharacteristic(example)
-
                     Log.i("Send Data", "the data was sent!")
                 }
             }
 
-        }
-
-        open fun switchLayouts(layout: String) {
-            if (layout == "setTime") {
-//            setContentView(R.layout.set_date);
-                timeButton!!.visibility = View.VISIBLE
-                initializeBluetooth!!.visibility = View.INVISIBLE
-                scanForBluetooth!!.visibility = View.INVISIBLE
-                startBtn!!.visibility = View.INVISIBLE
-                buttonContainer!!.visibility = View.INVISIBLE
-                textView!!.visibility = View.INVISIBLE
-                lastDetection!!.visibility = View.INVISIBLE
-                timeButton.setOnClickListener { setTime(timeButton) }
-            } else {
-                setContentView(R.layout.activity_main)
-            }
-        }
-
-        fun setTime(timeButton: Button) {
-            val onTimeSetListener = OnTimeSetListener { timePicker, selectedHour, selectedMinute ->
-                    hour = selectedHour
-                    minute = selectedMinute
-                    timeButton.text =
-                        String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
-                }
-            val style = android.R.style.Theme_Holo_Light_Dialog_NoActionBar
-            val timePickerDialog =
-                TimePickerDialog(this, style, onTimeSetListener, hour, minute, true)
-            timePickerDialog.setTitle("Select Time")
-            timePickerDialog.show()
         }
 
         fun setTime(day: String) {
@@ -621,8 +557,6 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
                 schedule[day] = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
                 Log.i("Schedule", schedule.toString())
                 sendToDevice(schedule.toString())
-//                timeButton.text =
-//                    String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
             }
             val style = android.R.style.Theme_Holo_Light_Dialog_NoActionBar
             val timePickerDialog =
@@ -631,13 +565,7 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
             timePickerDialog.show()
         }
 
-        fun switchToNewActivity(){
-            val intent = Intent(this, PillDispenserActivity::class.java)
-            startActivity(intent)
-        }
-
         private fun launchBackgroundScan() {
-//            startBackgroundScan = Intent(this, BackgroundScan::class.java)
             startBackgroundScan = android.content.Intent(this, BackgroundScan::class.java)
             startBackgroundScan!!.putExtra("service_uuid", SERVICE_UUID)
             startBackgroundScan!!.putExtra("characteristic_uuid", CHARACTERISTIC_UUID)
@@ -658,7 +586,6 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
         override fun onTargetDeviceFound(device: BluetoothDevice?) {
             Log.i("BACKGROUND SERVICE", "onTargetDeviceFound running")
             val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
-//                       device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
         }
 
         open fun addDeviceToList(device: BluetoothDevice?, uuids: kotlin.collections.MutableList<ParcelUuid?>?) {
@@ -693,7 +620,6 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
             tabLayout = findViewById(R.id.tab_layout)
             viewPager2 = findViewById(R.id.view_pager)
             myViewPagerAdapter = MyViewPagerAdapter(this)
-//            myViewPagerAdapter = MyViewPagerAdapter(supportFragmentManager, lifecycle)
             viewPager2.adapter = myViewPagerAdapter
             context = this
 
@@ -794,7 +720,6 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
         private fun requestPermissions() {
             val permission = deniedPermission()
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-                // Show an explanation asynchronously
                 Toast.makeText(this, "Should show an explanation.", Toast.LENGTH_SHORT).show()
             } else {
                 ActivityCompat.requestPermissions(this, list.toTypedArray(), permissionrequestcode)
@@ -843,8 +768,6 @@ class MainActivity : AppCompatActivity(), AutoConnect, IBackgroundScan {
                 }
             }
         }
-
-    // Services
 
     @SuppressLint("MissingPermission")
     fun scanForBluetoothWithPermissionsService(){

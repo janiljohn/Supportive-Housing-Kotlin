@@ -40,7 +40,11 @@ class BackgroundScan : Service(), IRestartScan {
             super.onScanResult(callbackType, result)
             val device = result.device
             callback!!.onDeviceScan(result)
+            if(device.name != null){
+                Log.i("Scanned Devices", device.name)
+            }
             if (device != null && device.name != null && device.name == "ESP32") {
+                Log.i("BACKGROUND SERVICE", "scan stopped")
                 scanner!!.stopScan(this)
                 callback!!.onTargetDeviceFound(device)
             }
@@ -79,7 +83,9 @@ class BackgroundScan : Service(), IRestartScan {
     }
 
     private fun beginScan() {
+        Log.i("BACKGROUND SERVICE", "Background beginScan running")
         scanner = bluetoothAdapter!!.bluetoothLeScanner
+        scanner!!.flushPendingScanResults(scanCallback)
         Toast.makeText(applicationContext, "Beginning continuous scan...", Toast.LENGTH_LONG).show()
         scanner!!.startScan(scanCallback)
     }
