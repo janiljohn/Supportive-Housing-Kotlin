@@ -48,7 +48,7 @@ import java.util.Queue
 import java.util.UUID
 import java.util.concurrent.Semaphore
 
-class MainActivity : AppCompatActivity(), IBackgroundScan {
+class MainActivity : AppCompatActivity(), IBackgroundScan, IPillDispenser {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
@@ -57,9 +57,9 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
     val REQUEST_ENABLE_BLUETOOTH_ADMIN = 2
 
 //    ESP-01 UUIDs
-    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
+//    val CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8a07361b26a8"
+//    val SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+//    val DESCRIPTOR_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
     // ESP-02 UUIDs
 //    val CHARACTERISTIC_UUID = "83755cbd-e485-4153-ac8b-ce260afd3697"
@@ -67,9 +67,9 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
 //    val DESCRIPTOR_UUID = "4d6ec567-93f0-4541-8152-81b35dc5cb8b"
 
 //    BLANK
-//    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
-//    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
-//    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
+    val CHARACTERISTIC_UUID = "681F827F-D00E-4307-B77A-F38014D6CC5F"
+    val SERVICE_UUID = "3BED005E-75B7-4DE6-B877-EAE81B0FC93F"
+    val DESCRIPTOR_UUID = "013B54B2-5520-406A-87F5-D644AD3E0565"
 
 //    Pill Dispenser
 //    val CHARACTERISTIC_UUID = "B3E39CF1-B4D5-4F0A-88DE-6EDE9ABE2BD2"
@@ -145,6 +145,11 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
 
     val deviceNameMapping: MutableMap<String, MutableList<MyBluetoothDevice>> = mutableMapOf()
 
+    val pillDispenserGatt: GattConnection = GattConnection("Pill Dispenser")
+    val smartWellnessGatt: GattConnection = GattConnection("Smart Wellness")
+
+    var initiateBackgroundScan = false
+
     val scanCallback: ScanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 Log.i("Scan passed", "Could  complete scan for nearby BLE devices")
@@ -170,164 +175,164 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    val gattCallback: BluetoothGattCallback = object : BluetoothGattCallback() {
-            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-                Log.i("Pill Dispenser", "onConnectionStateChange invoked")
-                Log.i("Device Status", newState.toString() + "")
-
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    Log.i("Device info", "Discovering bluetooth services of target device...")
-                    runOnUiThread {
-                        Toast.makeText(
-                            context,
-                            "Connected to Pill Dispenser successfully",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    gatt.requestMtu(512)
-//                    gatt.discoverServices();
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    Log.i("Device info", "Disconnecting bluetooth device...")
-                    gatt.disconnect()
-                    gatt.close()
-                }
-            }
-
-            override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
-                Log.i("Pill Dispenser", "onMtuChanged invoked")
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    Log.i("MTU Request", "MTU request success")
-                    gatt.discoverServices()
-                } else {
-                    Log.i("MTU Request", "MTU request failed")
-                }
-            }
-
-            override fun onCharacteristicChanged(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic
-            ) {
-                Log.i("Pill Dispenser", "onCharacteristicChanged invoked")
-                // Read the updated characteristic value
-                val message = characteristic.value
-                val messageString = String(message, StandardCharsets.UTF_8)
-                Log.i("Unparsed JSON string: ", messageString)
-                var status = ""
-                var lastDetected = 0
-                val motionDetected: Boolean
-                val proximityDetected: Boolean
-                val lightDetected: Boolean
-                val vibrationDetected: Boolean
-                try {
-//                    val jsonObject = JSONObject(messageString)
-//                    status = jsonObject.getString("status")
-//                    lastDetected = jsonObject.getInt("lastDetected")
-//                    motionDetected = jsonObject.getBoolean("motion")
-//                    proximityDetected = jsonObject.getBoolean("proximity")
-//                    lightDetected = jsonObject.getBoolean("light")
-//                    vibrationDetected = jsonObject.getBoolean("vibration")
-//                    //float lightIntensity = (float) jsonObject.getDouble("lightIntensity");
-//                    val finalStatus = status
-//                    val finalLastDetected = lastDetected
-                    runOnUiThread {
-//                        textView!!.text =
-//                            "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
-//                        lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
-//                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
-//                        displayNotification!!.text = messageString
-                    }
-                } catch (e: JSONException) {
-                    Log.i("Error", "Could not parse JSON string")
-                }
-                Log.i("Notification", "Updated status: $status")
-                Log.i("Notification", "Last detected: $lastDetected")
-                // Do something with the updated characteristic value
-            }
-
-            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-                Log.i("Pill Dispenser", "onServicesDiscovered invoked")
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    val service = gatt.getService(UUID.fromString(SERVICE_UUID))
-                    deviceGatt = gatt
-                    deviceService = service
-//                    sendData()
-                    val operation = queue.poll()
-                    if(!queue.isEmpty() && operation.equals("sendData")){
-                        sendData(gatt)
-                    }
-//                    sendData(gatt)
-                    Log.i("Device info", "Successfully discovered services of target device")
-                    if (service != null) {
-                        Log.i("Service status", "Service is not null.")
-                        val discoveredCharacteristic =
-                            service.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
-                        if (discoveredCharacteristic != null) {
-                            gatt.readCharacteristic(discoveredCharacteristic)
-                            if (gatt.setCharacteristicNotification(discoveredCharacteristic, true)) {
-                                Log.i("Set characteristic notification", "Success!")
-                                Log.i(
-                                    "Characteristic property flags",
-                                    discoveredCharacteristic.properties.toString()
-                                )
-                            } else {
-                                Log.i("Set characteristic notification", "Failure!")
-                            }
-                        } else {
-                            Log.i("Characteristic info", "Characteristic not found!")
-                        }
-                    } else {
-                        Log.i("Service info", "Service not found!")
-                    }
-                } else {
-                    Log.i("Service Discovery", "Service discovery failed")
-                }
-            }
-
-        override fun onCharacteristicRead(gatt: BluetoothGatt, discoveredCharacteristic: BluetoothGattCharacteristic, status: Int) {
-
-                Log.i("Pill Dispenser", "onCharacteristicRead invoked")
-
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    val data = discoveredCharacteristic.value
-                    val value = String(data, StandardCharsets.UTF_8)
-                    Log.i("Read data", "Received data: $value")
-                    displayNotification!!.text = value
-                }
-            }
-
-        override fun onCharacteristicRead(gatt: BluetoothGatt, discoveredCharacteristic: BluetoothGattCharacteristic, value : ByteArray ,status: Int) {
-
-
-            Log.i("Pill Dispenser", "onCharacteristicRead with byte array invoked")
-            val value = String(value)
-            Log.i("Read data", "Received data: $value")
-
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                val data = discoveredCharacteristic.value
-                val value = String(data, StandardCharsets.UTF_8)
-                Log.i("Read data", "Received data: $value")
-            }
-        }
-
-        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-                Log.i("Pill Dispenser", "onCharacteristicWrite invoked")
-                Log.i("Pill Dispenser", "onCharacteristicWrite invoked: " + characteristic.uuid)
-//                val toString = characteristic.toString()
-                val data = characteristic.value
-                val info = gatt.readCharacteristic(characteristic)
-                info.toString()
-                val value = String(data)
-                Log.i("Read data", "Received data: $value")
-
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    val data = characteristic.value
-                    val value = String(data, StandardCharsets.UTF_8)
-                    Log.i("Read data", "Received data: $value")
-
-                }
-            }
-        }
+//    @SuppressLint("MissingPermission")
+//    val gattCallback: BluetoothGattCallback = object : BluetoothGattCallback() {
+//            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+//                Log.i("Pill Dispenser", "onConnectionStateChange invoked")
+//                Log.i("Device Status", newState.toString() + "")
+//
+//                if (newState == BluetoothProfile.STATE_CONNECTED) {
+//                    Log.i("Device info", "Discovering bluetooth services of target device...")
+//                    runOnUiThread {
+//                        Toast.makeText(
+//                            context,
+//                            "Connected to Pill Dispenser successfully",
+//                            Toast.LENGTH_SHORT
+//                        ).show()
+//                    }
+//                    gatt.requestMtu(512)
+////                    gatt.discoverServices();
+//                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+//                    Log.i("Device info", "Disconnecting bluetooth device...")
+//                    gatt.disconnect()
+//                    gatt.close()
+//                }
+//            }
+//
+//            override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+//                Log.i("Pill Dispenser", "onMtuChanged invoked")
+//                if (status == BluetoothGatt.GATT_SUCCESS) {
+//                    Log.i("MTU Request", "MTU request success")
+//                    gatt.discoverServices()
+//                } else {
+//                    Log.i("MTU Request", "MTU request failed")
+//                }
+//            }
+//
+//            override fun onCharacteristicChanged(
+//                gatt: BluetoothGatt,
+//                characteristic: BluetoothGattCharacteristic
+//            ) {
+//                Log.i("Pill Dispenser", "onCharacteristicChanged invoked")
+//                // Read the updated characteristic value
+//                val message = characteristic.value
+//                val messageString = String(message, StandardCharsets.UTF_8)
+//                Log.i("Unparsed JSON string: ", messageString)
+//                var status = ""
+//                var lastDetected = 0
+//                val motionDetected: Boolean
+//                val proximityDetected: Boolean
+//                val lightDetected: Boolean
+//                val vibrationDetected: Boolean
+//                try {
+////                    val jsonObject = JSONObject(messageString)
+////                    status = jsonObject.getString("status")
+////                    lastDetected = jsonObject.getInt("lastDetected")
+////                    motionDetected = jsonObject.getBoolean("motion")
+////                    proximityDetected = jsonObject.getBoolean("proximity")
+////                    lightDetected = jsonObject.getBoolean("light")
+////                    vibrationDetected = jsonObject.getBoolean("vibration")
+////                    //float lightIntensity = (float) jsonObject.getDouble("lightIntensity");
+////                    val finalStatus = status
+////                    val finalLastDetected = lastDetected
+//                    runOnUiThread {
+////                        textView!!.text =
+////                            "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
+////                        lastDetection!!.text = "Last detected: " + finalLastDetected + "m ago"
+////                        displayNotification!!.text = "Status: $finalStatus\nMotion: $motionDetected\nProximity: $proximityDetected\nLight: $lightDetected\nVibration: $vibrationDetected"
+////                        displayNotification!!.text = messageString
+//                    }
+//                } catch (e: JSONException) {
+//                    Log.i("Error", "Could not parse JSON string")
+//                }
+//                Log.i("Notification", "Updated status: $status")
+//                Log.i("Notification", "Last detected: $lastDetected")
+//                // Do something with the updated characteristic value
+//            }
+//
+//            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+//                Log.i("Pill Dispenser", "onServicesDiscovered invoked")
+//                if (status == BluetoothGatt.GATT_SUCCESS) {
+//                    val service = gatt.getService(UUID.fromString(SERVICE_UUID))
+//                    deviceGatt = gatt
+//                    deviceService = service
+////                    sendData()
+//                    val operation = queue.poll()
+//                    if(!queue.isEmpty() && operation.equals("sendData")){
+//                        sendData(gatt)
+//                    }
+////                    sendData(gatt)
+//                    Log.i("Device info", "Successfully discovered services of target device")
+//                    if (service != null) {
+//                        Log.i("Service status", "Service is not null.")
+//                        val discoveredCharacteristic =
+//                            service.getCharacteristic(UUID.fromString(CHARACTERISTIC_UUID))
+//                        if (discoveredCharacteristic != null) {
+//                            gatt.readCharacteristic(discoveredCharacteristic)
+//                            if (gatt.setCharacteristicNotification(discoveredCharacteristic, true)) {
+//                                Log.i("Set characteristic notification", "Success!")
+//                                Log.i(
+//                                    "Characteristic property flags",
+//                                    discoveredCharacteristic.properties.toString()
+//                                )
+//                            } else {
+//                                Log.i("Set characteristic notification", "Failure!")
+//                            }
+//                        } else {
+//                            Log.i("Characteristic info", "Characteristic not found!")
+//                        }
+//                    } else {
+//                        Log.i("Service info", "Service not found!")
+//                    }
+//                } else {
+//                    Log.i("Service Discovery", "Service discovery failed")
+//                }
+//            }
+//
+//        override fun onCharacteristicRead(gatt: BluetoothGatt, discoveredCharacteristic: BluetoothGattCharacteristic, status: Int) {
+//
+//                Log.i("Pill Dispenser", "onCharacteristicRead invoked")
+//
+//                if (status == BluetoothGatt.GATT_SUCCESS) {
+//                    val data = discoveredCharacteristic.value
+//                    val value = String(data, StandardCharsets.UTF_8)
+//                    Log.i("Read data", "Received data: $value")
+//                    displayNotification!!.text = value
+//                }
+//            }
+//
+//        override fun onCharacteristicRead(gatt: BluetoothGatt, discoveredCharacteristic: BluetoothGattCharacteristic, value : ByteArray ,status: Int) {
+//
+//
+//            Log.i("Pill Dispenser", "onCharacteristicRead with byte array invoked")
+//            val value = String(value)
+//            Log.i("Read data", "Received data: $value")
+//
+//            if (status == BluetoothGatt.GATT_SUCCESS) {
+//                val data = discoveredCharacteristic.value
+//                val value = String(data, StandardCharsets.UTF_8)
+//                Log.i("Read data", "Received data: $value")
+//            }
+//        }
+//
+//        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+//                Log.i("Pill Dispenser", "onCharacteristicWrite invoked")
+//                Log.i("Pill Dispenser", "onCharacteristicWrite invoked: " + characteristic.uuid)
+////                val toString = characteristic.toString()
+//                val data = characteristic.value
+//                val info = gatt.readCharacteristic(characteristic)
+//                info.toString()
+//                val value = String(data)
+//                Log.i("Read data", "Received data: $value")
+//
+//                if (status == BluetoothGatt.GATT_SUCCESS) {
+//                    val data = characteristic.value
+//                    val value = String(data, StandardCharsets.UTF_8)
+//                    Log.i("Read data", "Received data: $value")
+//
+//                }
+//            }
+//        }
 
     @SuppressLint("MissingPermission")
         val someActivityResultLauncher = registerForActivityResult<Intent, ActivityResult>(
@@ -467,21 +472,24 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
             }
             val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
             var connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
-            val gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+//            val gatt = device.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            val gatt = device.connectGatt(this, false, pillDispenserGatt!!.gattCallback, BluetoothDevice.TRANSPORT_LE)
             connectedDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
             Log.i("Bluetooth Device Check", device.toString())
         }
 
         @SuppressLint("MissingPermission")
         fun startDeviceDiscovery(operation: String){
-            val gatt = this.device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+//            val gatt = this.device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            val gatt = device?.connectGatt(this, false, pillDispenserGatt!!.gattCallback, BluetoothDevice.TRANSPORT_LE)
             queue.add(operation)
             gatt?.discoverServices()
 //            sendDataBtn.visibility = View.VISIBLE
         }
 
+
         @SuppressLint("MissingPermission")
-        fun sendData(gatt: BluetoothGatt){
+        override fun sendData(gatt: BluetoothGatt){
 
             queue.add("sendData")
             val s = "ok"
@@ -512,6 +520,7 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
             val charsetName = "UTF-16"
             val byteArray = s.toByteArray(StandardCharsets.UTF_8)
 
+            deviceGatt = pillDispenserGatt.getDeviceGatt()
             deviceService = deviceGatt?.getService(UUID.fromString(SERVICE_UUID))
 
             if (deviceService != null) {
@@ -535,6 +544,7 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
             val charsetName = "UTF-16"
             val byteArray = s.toByteArray(StandardCharsets.UTF_8)
 
+            deviceGatt = pillDispenserGatt.getDeviceGatt()
             deviceService = deviceGatt?.getService(UUID.fromString(SERVICE_UUID))
 
             if (deviceService != null) {
@@ -585,7 +595,8 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
 
         override fun onTargetDeviceFound(device: BluetoothDevice?) {
             Log.i("BACKGROUND SERVICE", "onTargetDeviceFound running")
-            val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+//            val gatt = device?.connectGatt(this, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+            val gatt = device?.connectGatt(this, false, smartWellnessGatt.gattCallback, BluetoothDevice.TRANSPORT_LE)
         }
 
         open fun addDeviceToList(device: BluetoothDevice?, uuids: kotlin.collections.MutableList<ParcelUuid?>?) {
@@ -662,7 +673,10 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
                     }
 
                     startBtn.setOnClickListener(View.OnClickListener { startProcess() })
-                    startServiceBtn.setOnClickListener(View.OnClickListener { scanForBluetoothWithPermissionsService() })
+                    startServiceBtn.setOnClickListener(View.OnClickListener {
+                        initiateBackgroundScan = true
+                        scanForBluetoothWithPermissionsService()
+                    })
 
                 }
 
@@ -760,8 +774,12 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
                         Toast.makeText(this, "Permissions already granted.", Toast.LENGTH_SHORT).show()
                         Log.i("Permission", "Scan Permission granted")
                         bluetoothScanner.startScan(scanCallback)
-                        launchBackgroundScan()
-                        startBtn!!.visibility = View.VISIBLE
+                        if(initiateBackgroundScan){
+                            initiateBackgroundScan = false
+                            launchBackgroundScan()
+                        } else{
+                            startBtn!!.visibility = View.VISIBLE
+                        }
                     } else {
                         showAlert()
                     }
@@ -771,6 +789,7 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
 
     @SuppressLint("MissingPermission")
     fun scanForBluetoothWithPermissionsService(){
+        Log.i("Service", "scanForBluetoothWithPermissionsService invoked")
         if (isPermissionsGranted() != PackageManager.PERMISSION_GRANTED) {
             showAlertService()
         } else {
@@ -782,6 +801,7 @@ class MainActivity : AppCompatActivity(), IBackgroundScan {
 
     private fun showAlertService() {
         Log.i("Permission", "showAlert function triggered")
+        Log.i("Service", "scanForBluetoothWithPermissionsService invoked")
         val builder = android.app.AlertDialog.Builder(this)
         builder.setTitle("Need permission(s)")
         builder.setMessage("Bluetooth permissions are required to do the task.")
